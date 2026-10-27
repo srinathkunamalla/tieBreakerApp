@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { DecisionResult, AIProvider } from '../types/decision.js';
 import { generateDomainSpecificAnalysis } from '../utils/domainAnalyzer.js';
+import { generateOfflineAskSolution, AskAnythingResult } from '../utils/askAnythingEngine.js';
 
 interface AnalyzeRequest {
   title: string;
@@ -436,3 +437,199 @@ Deliver a concise (2 to 3 paragraphs max), mathematically and practically sound 
   return `Regarding "${question}" on "${decisionTitle}":
 When stress-testing ${recommendation?.winner || options[0]}, focus on the math of the downside. If you are dealing with options, remember that time decay (Theta) is exponential. If holding, enforce a strict exit stop rather than gambling on a miracle rebound.`;
 }
+
+/**
+ * Handle "Ask Me Anything" queries with ChatGPT, Claude, Grok, or Gemini
+ */
+export async function askAnythingWithMultiModel(params: {
+  question: string;
+  context?: string;
+  provider?: string;
+}): Promise<AskAnythingResult> {
+  const { question, context, provider = 'openai' } = params;
+
+  const normalizedProvider = provider === 'chatgpt' ? 'openai' : provider;
+
+  const askPrompt = `USER QUESTION: "${question}"
+ADDITIONAL CONTEXT: "${context || 'None'}"
+
+You are an authoritative strategic consultant, quantitative options & market analyst, and executive problem solver.
+Provide a clear, domain-specific, actionable answer. If the question involves stocks/options (e.g. CVS, WMT, strike prices, calls, puts, Theta, expiry), analyze the Greeks, expiration timeline, and exact payoff risk.
+Return strict JSON with this exact schema:
+{
+  "directAnswer": "Authoritative, multi-paragraph direct answer with real-world clarity and quantitative analysis",
+  "keyTakeaways": ["Core strategic takeaway 1", "Core strategic takeaway 2", "Core strategic takeaway 3"],
+  "actionSteps": ["Action step 1", "Action step 2", "Action step 3", "Action step 4"],
+  "riskOrCaveats": "Specific downside risk or pitfall to watch out for",
+  "suggestedOptionsForMatrix": ["Option 1", "Option 2", "Option 3"]
+}`;
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const grokKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  let parsed: any = null;
+  let activeModel = 'ChatGPT (GPT-4o)';
+
+  // 1. Try preferred provider
+  try {
+    if (normalizedProvider === 'openai' && openaiKey) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: 'You are an elite strategic decision advisor. Return valid JSON only.' },
+            { role: 'user', content: askPrompt },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.2,
+        }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        parsed = JSON.parse(d.choices[0].message.content);
+        activeModel = 'ChatGPT (GPT-4o)';
+      }
+    } else if (normalizedProvider === 'claude' && anthropicKey) {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: `${askPrompt}\nReturn pure JSON only.` }],
+        }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        const text = d.content?.[0]?.text?.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+        parsed = JSON.parse(text);
+        activeModel = 'Claude 3.5 Sonnet';
+      }
+    } else if (normalizedProvider === 'grok' && grokKey) {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${grokKey}`,
+        },
+        body: JSON.stringify({
+          model: 'grok-2-latest',
+          messages: [
+            { role: 'system', content: 'You are an elite strategic decision advisor. Return valid JSON only.' },
+            { role: 'user', content: askPrompt },
+          ],
+          response_format: { type: 'json_object' },
+        }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        parsed = JSON.parse(d.choices[0].message.content);
+        activeModel = 'Grok-2';
+      }
+    } else if (normalizedProvider === 'gemini' && geminiKey) {
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
+      const resp = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: askPrompt,
+        config: { responseMimeType: 'application/json' },
+      });
+      if (resp.text) {
+        parsed = JSON.parse(resp.text);
+        activeModel = 'Gemini 2.5 Flash';
+      }
+    }
+  } catch (err) {
+    console.warn(`Primary ask model provider ${provider} call failed:`, err);
+  }
+
+  // 2. Fallbacks to any available API
+  if (!parsed) {
+    if (openaiKey && normalizedProvider !== 'openai') {
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [{ role: 'user', content: askPrompt }],
+            response_format: { type: 'json_object' },
+          }),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          parsed = JSON.parse(d.choices[0].message.content);
+          activeModel = 'ChatGPT (GPT-4o - Auto-Routed)';
+        }
+      } catch (e) {
+        console.warn('OpenAI fallback failed:', e);
+      }
+    } else if (anthropicKey && normalizedProvider !== 'claude') {
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 2048,
+            messages: [{ role: 'user', content: `${askPrompt}\nReturn pure JSON only.` }],
+          }),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          const text = d.content?.[0]?.text?.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+          parsed = JSON.parse(text);
+          activeModel = 'Claude 3.5 Sonnet (Auto-Routed)';
+        }
+      } catch (e) {
+        console.warn('Claude fallback failed:', e);
+      }
+    } else if (geminiKey && normalizedProvider !== 'gemini') {
+      try {
+        const ai = new GoogleGenAI({ apiKey: geminiKey });
+        const resp = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: askPrompt,
+          config: { responseMimeType: 'application/json' },
+        });
+        if (resp.text) {
+          parsed = JSON.parse(resp.text);
+          activeModel = 'Gemini 2.5 Flash (Auto-Routed)';
+        }
+      } catch (e) {
+        console.warn('Gemini fallback failed:', e);
+      }
+    }
+  }
+
+  // 3. If no external API key, use intelligent offline domain solver
+  if (!parsed) {
+    return generateOfflineAskSolution(question, normalizedProvider);
+  }
+
+  return {
+    id: `ama_${Date.now()}`,
+    question,
+    model: activeModel,
+    provider: normalizedProvider,
+    category: parsed.category || 'Strategic Analysis',
+    confidenceScore: parsed.confidenceScore || 95,
+    directAnswer: parsed.directAnswer || '',
+    keyTakeaways: parsed.keyTakeaways || [],
+    actionSteps: parsed.actionSteps || [],
+    riskOrCaveats: parsed.riskOrCaveats || '',
+    suggestedOptionsForMatrix: parsed.suggestedOptionsForMatrix || [],
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  };
+}
+

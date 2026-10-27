@@ -9,11 +9,12 @@ import { InteractiveToolkit } from './components/InteractiveToolkit';
 import { SavedDecisionsModal } from './components/SavedDecisionsModal';
 import { ExportSummaryModal } from './components/ExportSummaryModal';
 import { TradingViewWidget } from './components/TradingViewWidget';
+import { AskMeAnything } from './components/AskMeAnything';
 import { DecisionResult, AnalysisTab, Criterion, CriterionScore, ProConItem } from './types/decision';
 import { determineWinner, calculateMatrixScores, calculateProsConsScore } from './utils/decisionLogic';
 import { generateLocalDecisionAnalysis } from './utils/decisionEngine';
 import { extractTickerSymbol } from './utils/tickerExtractor';
-import { Scale, CheckSquare, Table2, Grid2X2, Sparkles, Compass, TrendingUp } from 'lucide-react';
+import { Scale, CheckSquare, Table2, Grid2X2, Sparkles, Compass, TrendingUp, MessageSquareQuote } from 'lucide-react';
 
 const STORAGE_KEY = 'the_tie_breaker_saved_dossiers';
 
@@ -24,6 +25,17 @@ export default function App() {
   const [savedDecisions, setSavedDecisions] = useState<DecisionResult[]>([]);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [landingMode, setLandingMode] = useState<'matrix' | 'ask_anything'>('matrix');
+  const [prefilledDilemma, setPrefilledDilemma] = useState<{ title: string; options: string[] } | null>(null);
+
+  const handleTransferToDecisionMatrix = (title: string, options: string[]) => {
+    setPrefilledDilemma({ title, options });
+    setLandingMode('matrix');
+    if (activeResult) {
+      setActiveResult(null);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Load saved dossiers from localStorage
   useEffect(() => {
@@ -213,12 +225,77 @@ export default function App() {
                 </span>
               </h1>
               <p className="text-sm sm:text-base text-slate-700 max-w-xl mx-auto font-medium">
-                Provide any difficult life, career, or business decision. The AI generates weighted pros & cons, an interactive criteria comparison table, and a deep SWOT matrix to reveal the superior path.
+                Provide any difficult life, career, or business decision, or use Ask Me Anything to get immediate strategic solutions powered by ChatGPT & Claude models.
               </p>
             </div>
 
-            {/* Input Form Component */}
-            <DecisionForm onSubmit={handleAnalyzeDecision} isLoading={isLoading} />
+            {/* Mode Switcher */}
+            <div className="flex items-center justify-center">
+              <div className="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setLandingMode('matrix')}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    landingMode === 'matrix'
+                      ? 'bg-white text-indigo-700 shadow-xs border border-indigo-100'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Scale className="w-4 h-4" />
+                  <span>Weighted Decision Matrix</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLandingMode('ask_anything')}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    landingMode === 'ask_anything'
+                      ? 'bg-white text-indigo-700 shadow-xs border border-indigo-100'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <MessageSquareQuote className="w-4 h-4 text-amber-600" />
+                  <span>Ask Me Anything (ChatGPT)</span>
+                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                    New
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Input Form or AMA View */}
+            {landingMode === 'matrix' ? (
+              <div className="space-y-10">
+                <DecisionForm
+                  onSubmit={handleAnalyzeDecision}
+                  isLoading={isLoading}
+                  initialTitle={prefilledDilemma?.title}
+                  initialOptions={prefilledDilemma?.options}
+                />
+
+                {/* Sub-section: Quick AMA preview */}
+                <div className="pt-4 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Need a quick solution first?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLandingMode('ask_anything')}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Open Full AMA Section</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+                  <AskMeAnything onTransferToDecisionMatrix={handleTransferToDecisionMatrix} />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <AskMeAnything onTransferToDecisionMatrix={handleTransferToDecisionMatrix} />
+              </div>
+            )}
           </div>
         ) : (
           /* Active Results Dossier */
@@ -329,6 +406,20 @@ export default function App() {
                     )}
                   </span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('ask_anything')}
+                  className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+                    activeTab === 'ask_anything'
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
+                  }`}
+                  aria-label="View Ask Me Anything"
+                >
+                  <MessageSquareQuote className="w-4 h-4 text-amber-600" />
+                  <span>Ask Me Anything (ChatGPT)</span>
+                </button>
               </div>
             </div>
 
@@ -414,6 +505,20 @@ export default function App() {
                     decisionTitle={activeResult.title}
                   />
                 </section>
+
+                {/* 6. Ask Me Anything (AMA) Solutions Engine */}
+                <section>
+                  <div className="flex items-center gap-2 mb-4">
+                    <MessageSquareQuote className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-xl font-extrabold text-slate-900">
+                      6. Ask Me Anything (AMA) — ChatGPT Reasoning Engine
+                    </h3>
+                  </div>
+                  <AskMeAnything
+                    contextTitle={activeResult.title}
+                    onTransferToDecisionMatrix={handleTransferToDecisionMatrix}
+                  />
+                </section>
               </div>
             )}
 
@@ -452,6 +557,13 @@ export default function App() {
               <TradingViewWidget
                 initialSymbol={extractTickerSymbol(activeResult.title, activeResult.options) || 'CVS'}
                 decisionTitle={activeResult.title}
+              />
+            )}
+
+            {activeTab === 'ask_anything' && (
+              <AskMeAnything
+                contextTitle={activeResult.title}
+                onTransferToDecisionMatrix={handleTransferToDecisionMatrix}
               />
             )}
           </div>

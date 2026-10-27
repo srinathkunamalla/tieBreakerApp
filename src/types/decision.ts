@@ -67,7 +67,7 @@ export interface DecisionResult {
 
 export type AIProvider = 'claude' | 'openai' | 'grok' | 'gemini';
 
-export type AnalysisTab = 'all' | 'pros_cons' | 'comparison' | 'swot' | 'tie_breaker' | 'tradingview';
+export type AnalysisTab = 'all' | 'pros_cons' | 'comparison' | 'swot' | 'tie_breaker' | 'tradingview' | 'ask_anything';
 
 export interface SampleDecision {
   title: string;

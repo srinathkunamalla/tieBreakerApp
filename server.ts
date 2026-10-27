@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { analyzeDecisionWithMultiModel, clarifyChatWithMultiModel } from './src/server/aiRouter.js';
+import { analyzeDecisionWithMultiModel, clarifyChatWithMultiModel, askAnythingWithMultiModel } from './src/server/aiRouter.js';
 
 dotenv.config();
 
@@ -62,6 +62,28 @@ app.post('/api/chat-clarify', async (req: Request, res: Response) => {
     return res.json({
       answer: `Prioritize whichever path preserves the highest degree of optionality while minimizing unhedged downside.`,
     });
+  }
+});
+
+// POST: Ask Me Anything with ChatGPT / Claude / Multi-Model AI
+app.post('/api/ask-anything', async (req: Request, res: Response) => {
+  try {
+    const { question, context, provider } = req.body;
+
+    if (!question || typeof question !== 'string') {
+      return res.status(400).json({ error: 'Question is required.' });
+    }
+
+    const solution = await askAnythingWithMultiModel({
+      question,
+      context,
+      provider: provider || 'openai',
+    });
+
+    return res.json(solution);
+  } catch (error: any) {
+    console.error('Error in ask-anything handler:', error);
+    return res.status(500).json({ error: 'Failed to process question.' });
   }
 });
 

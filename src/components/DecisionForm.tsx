@@ -7,12 +7,24 @@ import { Bot, Cpu } from 'lucide-react';
 interface DecisionFormProps {
   onSubmit: (title: string, options: string[], context: string, mode: string, provider: AIProvider) => void;
   isLoading: boolean;
+  initialTitle?: string;
+  initialOptions?: string[];
 }
 
-export const DecisionForm: React.FC<DecisionFormProps> = ({ onSubmit, isLoading }) => {
-  const [title, setTitle] = useState('');
-  const [options, setOptions] = useState<string[]>(['', '']);
+export const DecisionForm: React.FC<DecisionFormProps> = ({
+  onSubmit,
+  isLoading,
+  initialTitle = '',
+  initialOptions,
+}) => {
+  const [title, setTitle] = useState(initialTitle);
+  const [options, setOptions] = useState<string[]>(initialOptions && initialOptions.length >= 2 ? initialOptions : ['', '']);
   const [context, setContext] = useState('');
+
+  React.useEffect(() => {
+    if (initialTitle) setTitle(initialTitle);
+    if (initialOptions && initialOptions.length >= 2) setOptions(initialOptions);
+  }, [initialTitle, initialOptions]);
   const [showContext, setShowContext] = useState(false);
   const [analysisMode, setAnalysisMode] = useState<'all' | 'pros_cons' | 'comparison' | 'swot'>('all');
   const [provider, setProvider] = useState<AIProvider>('claude');

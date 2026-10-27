@@ -7,7 +7,7 @@ interface TradingViewWidgetProps {
 }
 
 export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
-  initialSymbol = 'CVS',
+  initialSymbol = '',
   decisionTitle = '',
 }) => {
   const [symbol, setSymbol] = useState(initialSymbol);
