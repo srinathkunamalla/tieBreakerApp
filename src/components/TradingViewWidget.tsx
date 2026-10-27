@@ -114,7 +114,7 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
     setSymbol(searchInput.trim().toUpperCase());
   };
 
-  const POPULAR_TICKERS = ['CVS', 'SPY', 'QQQ', 'NVDA', 'AAPL', 'TSLA', 'BTCUSD'];
+  const POPULAR_TICKERS = ['WMT', 'SPY', 'QQQ', 'NVDA', 'AAPL', 'TSLA', 'BTCUSD'];
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
