@@ -10,6 +10,7 @@ import { SavedDecisionsModal } from './components/SavedDecisionsModal';
 import { ExportSummaryModal } from './components/ExportSummaryModal';
 import { DecisionResult, AnalysisTab, Criterion, CriterionScore, ProConItem } from './types/decision';
 import { determineWinner, calculateMatrixScores, calculateProsConsScore } from './utils/decisionLogic';
+import { generateLocalDecisionAnalysis } from './utils/decisionEngine';
 import { Scale, CheckSquare, Table2, Grid2X2, Sparkles, Compass } from 'lucide-react';
 
 const STORAGE_KEY = 'the_tie_breaker_saved_dossiers';
@@ -51,17 +52,27 @@ export default function App() {
   ) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/analyze-decision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, options, context, mode }),
-      });
+      let result: DecisionResult | null = null;
 
-      if (!response.ok) {
-        throw new Error('Analysis request failed');
+      try {
+        const response = await fetch('/api/analyze-decision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, options, context, mode }),
+        });
+
+        if (response.ok) {
+          result = await response.json();
+        }
+      } catch (networkErr) {
+        console.warn('Backend API unavailable (e.g. running on static host like GitHub Pages). Utilizing local decision engine.');
       }
 
-      const result: DecisionResult = await response.json();
+      // If backend was not reached or returned error (e.g. static host like GitHub Pages)
+      if (!result) {
+        result = generateLocalDecisionAnalysis(title, options, context);
+      }
+
       setActiveResult(result);
       if (mode === 'pros_cons') setActiveTab('pros_cons');
       else if (mode === 'comparison') setActiveTab('comparison');
@@ -71,6 +82,9 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Error analyzing decision:', err);
+      // Ensure failure never leaves the user stranded
+      const fallback = generateLocalDecisionAnalysis(title, options, context);
+      setActiveResult(fallback);
     } finally {
       setIsLoading(false);
     }

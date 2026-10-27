@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { HelpCircle, RefreshCw, Send, Sparkles, Brain, Eye, Clock, MessageSquareQuote } from 'lucide-react';
 import { DecisionResult } from '../types/decision';
+import { generateLocalChatResponse } from '../utils/decisionEngine';
 
 interface InteractiveToolkitProps {
   result: DecisionResult;
@@ -48,23 +49,34 @@ export const InteractiveToolkit: React.FC<InteractiveToolkitProps> = ({ result }
     setChatLoading(true);
 
     try {
-      const res = await fetch('/api/chat-clarify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: q,
-          decisionTitle: title,
-          options,
-          recommendation,
-        }),
-      });
-      const data = await res.json();
-      setChatHistory((prev) => [...prev, { role: 'ai', text: data.answer || 'Consider your core priorities.' }]);
+      let answer = '';
+      try {
+        const res = await fetch('/api/chat-clarify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: q,
+            decisionTitle: title,
+            options,
+            recommendation,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          answer = data.answer;
+        }
+      } catch (e) {
+        // Fallback for static hosting
+      }
+
+      if (!answer) {
+        answer = generateLocalChatResponse(q, title, options, recommendation);
+      }
+
+      setChatHistory((prev) => [...prev, { role: 'ai', text: answer }]);
     } catch (err) {
-      setChatHistory((prev) => [
-        ...prev,
-        { role: 'ai', text: 'Error contacting decision engine. Evaluate whether the risk is reversible.' },
-      ]);
+      const fallback = generateLocalChatResponse(q, title, options, recommendation);
+      setChatHistory((prev) => [...prev, { role: 'ai', text: fallback }]);
     } finally {
       setChatLoading(false);
     }
