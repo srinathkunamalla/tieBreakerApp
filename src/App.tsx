@@ -8,10 +8,12 @@ import { SWOTView } from './components/SWOTView';
 import { InteractiveToolkit } from './components/InteractiveToolkit';
 import { SavedDecisionsModal } from './components/SavedDecisionsModal';
 import { ExportSummaryModal } from './components/ExportSummaryModal';
+import { TradingViewWidget } from './components/TradingViewWidget';
 import { DecisionResult, AnalysisTab, Criterion, CriterionScore, ProConItem } from './types/decision';
 import { determineWinner, calculateMatrixScores, calculateProsConsScore } from './utils/decisionLogic';
 import { generateLocalDecisionAnalysis } from './utils/decisionEngine';
-import { Scale, CheckSquare, Table2, Grid2X2, Sparkles, Compass } from 'lucide-react';
+import { extractTickerSymbol } from './utils/tickerExtractor';
+import { Scale, CheckSquare, Table2, Grid2X2, Sparkles, Compass, TrendingUp } from 'lucide-react';
 
 const STORAGE_KEY = 'the_tie_breaker_saved_dossiers';
 
@@ -305,6 +307,27 @@ export default function App() {
                   <Compass className="w-4 h-4 text-amber-800" />
                   <span>Decision Toolkit</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('tradingview')}
+                  className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+                    activeTab === 'tradingview'
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
+                  }`}
+                  aria-label="View TradingView Market Feed"
+                >
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                  <span className="flex items-center gap-1.5">
+                    <span>TradingView Feed</span>
+                    {activeResult && extractTickerSymbol(activeResult.title, activeResult.options) && (
+                      <span className="px-1.5 py-0.2 rounded font-mono font-extrabold text-[10px] bg-blue-100 text-blue-800">
+                        {extractTickerSymbol(activeResult.title, activeResult.options)}
+                      </span>
+                    )}
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -369,6 +392,27 @@ export default function App() {
                   </div>
                   <InteractiveToolkit result={activeResult} />
                 </section>
+
+                {/* 5. TradingView Live Technical Market Feed */}
+                <section>
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                      <h3 className="text-xl font-extrabold text-slate-900">
+                        5. TradingView Live Market Insights
+                      </h3>
+                    </div>
+                    {extractTickerSymbol(activeResult.title, activeResult.options) && (
+                      <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200">
+                        Detected Symbol: {extractTickerSymbol(activeResult.title, activeResult.options)}
+                      </span>
+                    )}
+                  </div>
+                  <TradingViewWidget
+                    initialSymbol={extractTickerSymbol(activeResult.title, activeResult.options) || 'CVS'}
+                    decisionTitle={activeResult.title}
+                  />
+                </section>
               </div>
             )}
 
@@ -401,6 +445,13 @@ export default function App() {
 
             {activeTab === 'tie_breaker' && (
               <InteractiveToolkit result={activeResult} />
+            )}
+
+            {activeTab === 'tradingview' && (
+              <TradingViewWidget
+                initialSymbol={extractTickerSymbol(activeResult.title, activeResult.options) || 'CVS'}
+                decisionTitle={activeResult.title}
+              />
             )}
           </div>
         )}

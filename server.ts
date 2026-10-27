@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
 import { DecisionResult } from './src/types/decision.js';
+import { generateDomainSpecificAnalysis } from './src/utils/domainAnalyzer.js';
 
 dotenv.config();
 
@@ -29,150 +30,12 @@ if (apiKey) {
   });
 }
 
-/**
- * Intelligent deterministic fallback generator in case API key is missing or quota exceeded
- */
 function generateDeterministicFallback(
   title: string,
   options: string[],
   context: string = ''
 ): DecisionResult {
-  const optA = options[0] || 'Option A';
-  const optB = options[1] || 'Option B';
-  const optC = options[2];
-
-  const criteria = [
-    { id: 'crit_1', name: 'Long-term Impact & Upside', weight: 9, description: 'Potential for sustained value and growth' },
-    { id: 'crit_2', name: 'Financial & Resource Cost', weight: 8, description: 'Capital, expenses, or opportunity costs incurred' },
-    { id: 'crit_3', name: 'Implementation Risk & Reversibility', weight: 7, description: 'Downside protection if things do not go as planned' },
-    { id: 'crit_4', name: 'Time to Value / Agility', weight: 6, description: 'How rapidly benefits can be realized' },
-    { id: 'crit_5', name: 'Personal Alignment & Wellbeing', weight: 8, description: 'Alignment with core priorities, energy, and stress' },
-  ];
-
-  const scores: Record<string, Record<string, { score: number; reason: string }>> = {};
-  const prosCons: Record<string, { pros: any[]; cons: any[] }> = {};
-  const swot: Record<string, any> = {};
-
-  options.forEach((opt, idx) => {
-    // Pros & Cons
-    prosCons[opt] = {
-      pros: [
-        {
-          id: `pro_${idx}_1`,
-          text: `Significant upside potential and clear strategic differentiation for ${opt}.`,
-          weight: 5,
-          category: 'Growth',
-          impact: 'high',
-        },
-        {
-          id: `pro_${idx}_2`,
-          text: `Directly satisfies your stated requirements: "${title.slice(0, 50)}...".`,
-          weight: 4,
-          category: 'Alignment',
-          impact: 'medium',
-        },
-        {
-          id: `pro_${idx}_3`,
-          text: `Offers tangible operational autonomy and flexibility.`,
-          weight: 3,
-          category: 'Life Quality',
-          impact: 'medium',
-        },
-      ],
-      cons: [
-        {
-          id: `con_${idx}_1`,
-          text: `Involves upfront transition friction and short-term adjustment period.`,
-          weight: 4,
-          category: 'Effort',
-          impact: 'medium',
-        },
-        {
-          id: `con_${idx}_2`,
-          text: `Uncertainty regarding external variables that could affect timeline.`,
-          weight: 3,
-          category: 'Risk',
-          impact: 'low',
-        },
-      ],
-    };
-
-    // Matrix scores
-    scores[opt] = {
-      crit_1: { score: idx === 0 ? 8 : 7, reason: `Strong strategic path for ${opt}` },
-      crit_2: { score: idx === 0 ? 6 : 8, reason: `Manageable upfront expenditure` },
-      crit_3: { score: idx === 0 ? 7 : 6, reason: `Reasonable downside safety net` },
-      crit_4: { score: idx === 0 ? 8 : 6, reason: `Fast ramp-up curve` },
-      crit_5: { score: idx === 0 ? 9 : 7, reason: `High alignment with personal satisfaction` },
-    };
-
-    // SWOT
-    swot[opt] = {
-      strengths: [
-        `High intrinsic leverage and distinctive competitive advantage`,
-        `Direct ownership of outcomes and accelerated momentum`,
-        `Clear resonance with long-term ambition`,
-      ],
-      weaknesses: [
-        `Higher demand on cognitive energy in the initial 90 days`,
-        `Requires disciplined time management to avoid scope creep`,
-      ],
-      opportunities: [
-        `Unlock secondary compounding opportunities across your network`,
-        `Build resilience and high-value transferable experience`,
-      ],
-      threats: [
-        `Unexpected shifts in market conditions or partner priorities`,
-        `Risk of burnout if boundaries are not strictly maintained`,
-      ],
-      strategies: {
-        so: [`Leverage core strengths early to establish immediate milestone wins.`],
-        st: [`Use downside safeguards to insulate against external volatility.`],
-        wo: [`Outsource or simplify low-leverage tasks to capture upside.`],
-        wt: [`Establish clear exit criteria or pivot thresholds at day 60.`],
-      },
-      summaryVerdict: `${opt} offers compelling upside when paired with disciplined execution safeguards.`,
-    };
-  });
-
-  return {
-    decisionId: `dec_${Date.now()}`,
-    title,
-    context,
-    options,
-    summary: `Comprehensive evaluation comparing ${options.join(' vs ')} for: "${title}". Evaluated across core financial, strategic, wellbeing, and operational criteria.`,
-    recommendation: {
-      winner: optA,
-      confidenceScore: 82,
-      verdictHeadline: `${optA} holds the decisive structural advantage`,
-      verdictReasoning: `While ${optB} provides familiar baseline security, ${optA} scores significantly higher in long-term compounding growth, alignment with stated priorities, and upside leverage. The risks associated with ${optA} are predominantly reversible with disciplined execution.`,
-      tieBreakerFactor: `Asymmetry of upside vs reversible downside. In 3 years, choosing ${optA} creates optionality you cannot easily reconstruct from ${optB}.`,
-      actionPlan: [
-        `Commit to ${optA} with a defined 90-day review checkpoint.`,
-        `Establish pre-commitment guardrails to mitigate the primary identified weaknesses.`,
-        `Conduct an open conversation with key stakeholders to align on expectations.`,
-        `Archive notes on ${optB} as a contingency pivot plan if milestones are missed.`,
-      ],
-      irreversibleRiskWarning: `Ensure you don't burn bridges with alternatives; maintain warm professional relationships.`,
-    },
-    prosCons,
-    comparisonMatrix: {
-      criteria,
-      scores,
-    },
-    swot,
-    blindspots: [
-      `Are you overweighting short-term comfort over 3-to-5-year career/life trajectory?`,
-      `Have you stress-tested what worst-case looks like if your assumptions are 30% off?`,
-      `Is the decision truly binary, or can you negotiate a hybrid trial arrangement?`,
-    ],
-    gutCheckQuestions: [
-      `If you flipped a coin right now and it landed on ${optA}, would you feel relieved or disappointed?`,
-      `Which choice will 80-year-old you be prouder of having tested?`,
-      `If you could not fail, which option would you pick in 3 seconds?`,
-    ],
-    createdAt: new Date().toISOString(),
-  };
+  return generateDomainSpecificAnalysis(title, options, context);
 }
 
 // POST: Analyze Decision
@@ -190,13 +53,21 @@ app.post('/api/analyze-decision', async (req: Request, res: Response) => {
       return res.json(fallback);
     }
 
-    const prompt = `You are "The Tie Breaker", an elite executive decision-making advisor and cognitive strategist.
-Analyze this high-stakes decision deeply, objectively, and decisively.
+    const prompt = `You are "The Tie Breaker", an elite decision-making strategist and domain expert.
+Analyze this high-stakes decision with deep, authentic domain expertise and technical rigor.
 
 DECISION TO MAKE: "${title}"
 OPTIONS TO COMPARE: ${JSON.stringify(options)}
 ADDITIONAL CONTEXT & USER PREFERENCES: "${context || 'None provided'}"
 REQUESTED FOCUS MODE: "${mode || 'all'}"
+
+CRITICAL DOMAIN DIRECTIVE:
+Identify the exact domain of the dilemma (e.g. Options/Derivatives Trading, Stock Investing, Real Estate, Tech Architecture, Career, Personal).
+You MUST evaluate the dilemma using deep, authentic domain terminology and realistic mechanics:
+- If the decision involves OPTIONS TRADING (e.g. "CVS 96C 10/30 Sell or Hold"): Analyze Theta decay (exponential time decay into expiration), Implied Volatility (IV) crush, Delta leverage, strike price vs underlying spot price, risk of expiring worthless ($0.00), capital preservation, and rolling out strategies. DO NOT give generic corporate or career advice!
+- If the decision is FINANCIAL or INVESTING: Analyze risk-adjusted return, capital preservation, liquidity, drawdowns, and Sharpe ratio.
+- If the decision is REAL ESTATE: Analyze monthly cash flow, unrecoverable costs (property tax, interest, HOA), and time horizon.
+- If the decision is TECH/SOFTWARE: Analyze engineering velocity, technical debt, total cost of ownership, and vendor lock-in.
 
 Provide a thorough, mathematically weighted, and deeply nuanced breakdown.
 Return strict JSON matching this exact structure:

@@ -63,7 +63,7 @@ export interface DecisionResult {
   createdAt: string;
 }
 
-export type AnalysisTab = 'all' | 'pros_cons' | 'comparison' | 'swot' | 'tie_breaker';
+export type AnalysisTab = 'all' | 'pros_cons' | 'comparison' | 'swot' | 'tie_breaker' | 'tradingview';
 
 export interface SampleDecision {
   title: string;
