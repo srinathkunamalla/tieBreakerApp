@@ -44,8 +44,9 @@ export const VerdictBanner: React.FC<VerdictBannerProps> = ({
                 <span className="text-xs font-bold uppercase tracking-widest text-amber-400">
                   The Official Tie Breaker
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
-                  AI Verdict
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <span>{result.modelName ? `Evaluated by ${result.modelName}` : 'AI Verdict'}</span>
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5 tracking-tight">

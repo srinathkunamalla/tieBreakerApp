@@ -2,5 +2,7 @@
   "name": "The Tie Breaker",
   "description": "Intelligent AI-powered decision maker featuring multi-angle Pros & Cons, weighted Comparison Tables, and comprehensive SWOT Analysis.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

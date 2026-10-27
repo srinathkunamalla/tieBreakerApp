@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Sparkles, ChevronDown, ChevronUp, HelpCircle, Layers } from 'lucide-react';
 import { SAMPLE_DECISIONS } from '../data/sampleDecisions';
-import { SampleDecision } from '../types/decision';
+import { SampleDecision, AIProvider } from '../types/decision';
+import { Bot, Cpu } from 'lucide-react';
 
 interface DecisionFormProps {
-  onSubmit: (title: string, options: string[], context: string, mode: string) => void;
+  onSubmit: (title: string, options: string[], context: string, mode: string, provider: AIProvider) => void;
   isLoading: boolean;
 }
 
@@ -14,6 +15,7 @@ export const DecisionForm: React.FC<DecisionFormProps> = ({ onSubmit, isLoading 
   const [context, setContext] = useState('');
   const [showContext, setShowContext] = useState(false);
   const [analysisMode, setAnalysisMode] = useState<'all' | 'pros_cons' | 'comparison' | 'swot'>('all');
+  const [provider, setProvider] = useState<AIProvider>('claude');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleOptionChange = (index: number, value: string) => {
@@ -66,7 +68,7 @@ export const DecisionForm: React.FC<DecisionFormProps> = ({ onSubmit, isLoading 
     }
 
     setErrorMessage(null);
-    onSubmit(cleanTitle, cleanOptions, context.trim(), analysisMode);
+    onSubmit(cleanTitle, cleanOptions, context.trim(), analysisMode, provider);
   };
 
   return (
@@ -211,6 +213,84 @@ export const DecisionForm: React.FC<DecisionFormProps> = ({ onSubmit, isLoading 
               </p>
             </div>
           )}
+        </div>
+
+        {/* AI Decision Model Selection (Claude, OpenAI, Grok, Gemini) */}
+        <div>
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-indigo-600" />
+              <span>AI Reasoning Engine</span>
+            </span>
+            <span className="text-[10px] font-semibold text-indigo-600 lowercase tracking-normal bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+              Select Frontier AI
+            </span>
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {[
+              {
+                id: 'claude',
+                name: 'Claude 3.5 Sonnet',
+                provider: 'Anthropic',
+                highlight: 'Deep Nuance & Reasoning',
+                borderActive: 'border-amber-500 bg-amber-50/70 ring-2 ring-amber-400/30',
+                badge: 'bg-amber-100 text-amber-800',
+              },
+              {
+                id: 'openai',
+                name: 'GPT-4o',
+                provider: 'OpenAI',
+                highlight: 'Analytical Optimization',
+                borderActive: 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/30',
+                badge: 'bg-emerald-100 text-emerald-800',
+              },
+              {
+                id: 'grok',
+                name: 'Grok-2',
+                provider: 'xAI',
+                highlight: 'Direct Contrarian Truth',
+                borderActive: 'border-cyan-600 bg-cyan-50/70 ring-2 ring-cyan-500/30',
+                badge: 'bg-cyan-100 text-cyan-800',
+              },
+              {
+                id: 'gemini',
+                name: 'Gemini 2.5 Flash',
+                provider: 'Google',
+                highlight: 'Fast Multi-Perspective',
+                borderActive: 'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-500/30',
+                badge: 'bg-indigo-100 text-indigo-800',
+              },
+            ].map((m) => {
+              const isSelected = provider === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setProvider(m.id as AIProvider)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    isSelected
+                      ? m.borderActive
+                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded ${m.badge}`}>
+                      {m.provider}
+                    </span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                    )}
+                  </div>
+                  <div className="text-xs font-black text-slate-900 leading-tight">
+                    {m.name}
+                  </div>
+                  <div className="text-[10px] text-slate-700 truncate mt-0.5 font-medium">
+                    {m.highlight}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Mode Selector */}

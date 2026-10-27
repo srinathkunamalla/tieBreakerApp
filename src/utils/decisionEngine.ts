@@ -1,4 +1,4 @@
-import { DecisionResult } from '../types/decision';
+import { DecisionResult, AIProvider } from '../types/decision';
 import { generateDomainSpecificAnalysis, detectDomain } from './domainAnalyzer';
 
 /**
@@ -9,9 +9,10 @@ import { generateDomainSpecificAnalysis, detectDomain } from './domainAnalyzer';
 export function generateLocalDecisionAnalysis(
   title: string,
   options: string[],
-  context: string = ''
+  context: string = '',
+  provider: AIProvider = 'claude'
 ): DecisionResult {
-  return generateDomainSpecificAnalysis(title, options, context);
+  return generateDomainSpecificAnalysis(title, options, context, provider);
 }
 
 export function generateLocalChatResponse(

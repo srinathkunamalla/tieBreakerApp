@@ -60,8 +60,12 @@ export interface DecisionResult {
   swot: Record<string, OptionSWOT>;
   blindspots: string[];
   gutCheckQuestions: string[];
+  aiProvider?: 'claude' | 'openai' | 'grok' | 'gemini';
+  modelName?: string;
   createdAt: string;
 }
+
+export type AIProvider = 'claude' | 'openai' | 'grok' | 'gemini';
 
 export type AnalysisTab = 'all' | 'pros_cons' | 'comparison' | 'swot' | 'tie_breaker' | 'tradingview';
 

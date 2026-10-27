@@ -147,7 +147,7 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Ticker (e.g. CVS, AAPL)"
+                placeholder="Ticker (e.g. WMT, AAPL)"
                 className="pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-800 text-white border border-slate-700 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 w-36 uppercase font-mono font-bold"
               />
             </div>

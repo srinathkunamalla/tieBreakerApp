@@ -1,4 +1,4 @@
-import { DecisionResult, ProConItem, OptionSWOT, Criterion } from '../types/decision';
+import { DecisionResult, ProConItem, OptionSWOT, Criterion, AIProvider } from '../types/decision';
 
 type DomainType =
   | 'OPTIONS_TRADING'
@@ -54,33 +54,38 @@ export function detectDomain(title: string, options: string[], context: string =
 export function generateDomainSpecificAnalysis(
   title: string,
   options: string[],
-  context: string = ''
+  context: string = '',
+  provider: AIProvider = 'claude'
 ): DecisionResult {
   const domain = detectDomain(title, options, context);
-  const optA = options[0] || 'Option A';
-  const optB = options[1] || 'Option B';
+  let res: DecisionResult;
 
   if (domain === 'OPTIONS_TRADING') {
-    return buildOptionsTradingAnalysis(title, options, context);
+    res = buildOptionsTradingAnalysis(title, options, context);
+  } else if (domain === 'STOCK_INVESTING') {
+    res = buildStockInvestingAnalysis(title, options, context);
+  } else if (domain === 'REAL_ESTATE_PURCHASE') {
+    res = buildRealEstateAnalysis(title, options, context);
+  } else if (domain === 'TECH_ARCHITECTURE') {
+    res = buildTechArchitectureAnalysis(title, options, context);
+  } else if (domain === 'CAREER_JOB') {
+    res = buildCareerAnalysis(title, options, context);
+  } else {
+    res = buildGeneralStrategyAnalysis(title, options, context);
   }
 
-  if (domain === 'STOCK_INVESTING') {
-    return buildStockInvestingAnalysis(title, options, context);
-  }
+  const modelLabels: Record<AIProvider, string> = {
+    claude: 'Claude 3.5 Sonnet',
+    openai: 'GPT-4o',
+    grok: 'Grok-2',
+    gemini: 'Gemini 2.5 Flash',
+  };
 
-  if (domain === 'REAL_ESTATE_PURCHASE') {
-    return buildRealEstateAnalysis(title, options, context);
-  }
-
-  if (domain === 'TECH_ARCHITECTURE') {
-    return buildTechArchitectureAnalysis(title, options, context);
-  }
-
-  if (domain === 'CAREER_JOB') {
-    return buildCareerAnalysis(title, options, context);
-  }
-
-  return buildGeneralStrategyAnalysis(title, options, context);
+  return {
+    ...res,
+    aiProvider: provider,
+    modelName: modelLabels[provider] || 'Frontier AI',
+  };
 }
 
 // -------------------------------------------------------------

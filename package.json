@@ -8,6 +8,7 @@
     "build": "vite build && rm -rf docs && cp -r dist docs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
+    "test": "tsx --test src/**/*.test.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

@@ -50,7 +50,8 @@ export default function App() {
     title: string,
     options: string[],
     context: string,
-    mode: string
+    mode: string,
+    provider: import('./types/decision').AIProvider = 'claude'
   ) => {
     setIsLoading(true);
     try {
@@ -60,19 +61,19 @@ export default function App() {
         const response = await fetch('/api/analyze-decision', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, options, context, mode }),
+          body: JSON.stringify({ title, options, context, mode, provider }),
         });
 
         if (response.ok) {
           result = await response.json();
         }
       } catch (networkErr) {
-        console.warn('Backend API unavailable (e.g. running on static host like GitHub Pages). Utilizing local decision engine.');
+        console.warn('Backend API unavailable. Utilizing domain decision engine.');
       }
 
       // If backend was not reached or returned error (e.g. static host like GitHub Pages)
       if (!result) {
-        result = generateLocalDecisionAnalysis(title, options, context);
+        result = generateLocalDecisionAnalysis(title, options, context, provider);
       }
 
       setActiveResult(result);
@@ -85,7 +86,7 @@ export default function App() {
     } catch (err) {
       console.error('Error analyzing decision:', err);
       // Ensure failure never leaves the user stranded
-      const fallback = generateLocalDecisionAnalysis(title, options, context);
+      const fallback = generateLocalDecisionAnalysis(title, options, context, provider);
       setActiveResult(fallback);
     } finally {
       setIsLoading(false);
